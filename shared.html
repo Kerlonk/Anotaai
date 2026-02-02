@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista Compartilhada - Lista de Compras</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>">
+</head>
+<body>
+    <div class="shared-container">
+        <div class="shared-header">
+            <h1><i class="fas fa-shopping-cart"></i> Lista Compartilhada</h1>
+            <p id="shared-list-title">Carregando...</p>
+            <a href="login.html" class="btn btn-primary">
+                <i class="fas fa-sign-in-alt"></i> Entrar para Editar
+            </a>
+        </div>
+        
+        <div class="shared-content" id="shared-content">
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>Carregando lista...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="supabase.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Obter ID da lista da URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const listId = urlParams.get('list');
+            
+            if (!listId) {
+                document.getElementById('shared-content').innerHTML = `
+                    <div class="error-message">
+                        <h3>Lista não encontrada</h3>
+                        <p>O link de compartilhamento está incompleto.</p>
+                        <a href="login.html" class="btn btn-primary">Voltar ao Login</a>
+                    </div>
+                `;
+                return;
+            }
+            
+            try {
+                // Buscar lista do Supabase
+                const { data: lists, error } = await supabase
+                    .from('shopping_lists')
+                    .select('*')
+                    .eq('id', listId);
+                
+                if (error || !lists || lists.length === 0) {
+                    throw new Error('Lista não encontrada');
+                }
+                
+                const list = lists[0];
+                
+                // Atualizar título
+                document.getElementById('shared-list-title').textContent = list.name;
+                
+                // Mostrar itens
+                const items = list.items || [];
+                let itemsHTML = '';
+                
+                if (items.length === 0) {
+                    itemsHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-shopping-basket fa-3x"></i>
+                            <p>Esta lista está vazia</p>
+                        </div>
+                    `;
+                } else {
+                    itemsHTML = `
+                        <div class="stats-bar">
+                            <div class="stat-item">
+                                <span class="stat-label">Total:</span>
+                                <span class="stat-value">${items.length}</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Comprados:</span>
+                                <span class="stat-value">${items.filter(i => i.completed).length}</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Pendentes:</span>
+                                <span class="stat-value">${items.filter(i => !i.completed).length}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="items-list">
+                            ${items.map(item => `
+                                <div class="item ${item.completed ? 'completed' : ''}">
+                                    <div class="item-checkbox">
+                                        <i class="fas fa-${item.completed ? 'check-square' : 'square'}"></i>
+                                    </div>
+                                    <div class="item-content">
+                                        <div class="item-text ${item.completed ? 'completed' : ''}">
+                                            ${item.text}
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+                
+                document.getElementById('shared-content').innerHTML = itemsHTML;
+                
+            } catch (error) {
+                console.error('Erro ao carregar lista:', error);
+                document.getElementById('shared-content').innerHTML = `
+                    <div class="error-message">
+                        <h3>Erro ao carregar lista</h3>
+                        <p>${error.message}</p>
+                        <a href="login.html" class="btn btn-primary">Voltar ao Login</a>
+                    </div>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>
