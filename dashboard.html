@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anota Aí - Listas de Compras</title>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📝</text></svg>">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <div class="header-left">
+                <button class="menu-toggle" id="menu-toggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="header-title">
+                    <h1><i class="fas fa-pencil-alt"></i> Anota Aí</h1>
+                </div>
+            </div>
+            <div class="header-right">
+                <button class="profile-btn" id="profile-btn" title="Meu Perfil">
+                    <i class="fas fa-user"></i>
+                </button>
+                <button id="logout-btn" class="btn btn-danger">
+                    <i class="fas fa-sign-out-alt"></i> Sair
+                </button>
+            </div>
+        </header>
+        
+        <!-- Sidebar Overlay -->
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+        
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2><i class="fas fa-list"></i> Minhas Listas</h2>
+                <button class="sidebar-close" id="sidebar-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <button id="new-list-btn" class="btn btn-success btn-block">
+                <i class="fas fa-plus"></i> Nova Lista
+            </button>
+            
+            <div class="lists-container" id="lists-container">
+                <div class="loading-state">
+                    <i class="fas fa-spinner fa-spin fa-2x"></i>
+                    <p>Carregando listas...</p>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Content Area -->
+        <section class="content-area">
+            <div class="content-header">
+                <h2 id="current-list-title">Selecione uma lista</h2>
+                <div class="list-actions" id="list-actions" style="display: none;">
+                    <button id="share-list-btn" class="btn btn-primary">
+                        <i class="fas fa-user-plus"></i> Compartilhar
+                    </button>
+                    <button id="delete-list-btn" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Excluir
+                    </button>
+                </div>
+            </div>
+            
+            <div class="list-content" id="list-content">
+                <div class="empty-state">
+                    <i class="fas fa-shopping-basket fa-3x" style="color: #ccc;"></i>
+                    <h3>Nenhuma lista selecionada</h3>
+                    <p>Selecione ou crie uma lista para começar</p>
+                </div>
+            </div>
+        </section>
+    </div>
+    
+    <!-- Modal Criar Lista -->
+    <div id="create-list-modal" class="modal">
+        <div class="modal-content">
+            <h2><i class="fas fa-plus-circle"></i> Criar Nova Lista</h2>
+            <form id="create-list-form">
+                <div class="form-group">
+                    <label for="list-name">Nome da Lista *</label>
+                    <input type="text" id="list-name" placeholder="Ex: Compras do Mês" required>
+                </div>
+                <div class="form-group">
+                    <label for="list-description">Descrição (opcional)</label>
+                    <textarea id="list-description" placeholder="Detalhes..." rows="3"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('create-list-modal')">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Criar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Modal Perfil -->
+    <div id="profile-modal" class="modal">
+        <div class="modal-content">
+            <h2><i class="fas fa-user-circle"></i> Meu Perfil</h2>
+            
+            <div class="profile-section">
+                <div class="profile-avatar-upload">
+                    <img id="profile-avatar-img" class="profile-avatar-img" 
+                         src="https://via.placeholder.com/120/667eea/ffffff?text=?" alt="Avatar">
+                    <button type="button" class="avatar-upload-btn" onclick="document.getElementById('avatar-upload-input').click()">
+                        <i class="fas fa-camera"></i>
+                    </button>
+                    <input type="file" id="avatar-upload-input" class="avatar-upload-input" 
+                           accept="image/png,image/jpeg,image/jpg,image/gif,image/webp" 
+                           onchange="uploadAvatar(this.files[0])">
+                </div>
+                <p id="profile-email" style="color: #666; margin-bottom: 10px;"></p>
+                <p style="font-size: 12px; color: #999;">Clique na câmera para alterar a foto</p>
+            </div>
+            
+            <form id="profile-form">
+                <div class="form-group">
+                    <label for="profile-name">Nome Completo *</label>
+                    <input type="text" id="profile-name" placeholder="Seu nome" required>
+                </div>
+                <div class="form-group">
+                    <label for="profile-username">Nome de Usuário *</label>
+                    <input type="text" id="profile-username" placeholder="@usuario" required>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('profile-modal')">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Modal Compartilhar Lista -->
+    <div id="share-modal" class="modal">
+        <div class="modal-content">
+            <h2><i class="fas fa-share-alt"></i> Compartilhar Lista</h2>
+            <p style="margin-bottom: 20px; color: #666;">Busque usuários para compartilhar esta lista</p>
+            
+            <!-- Usuários já compartilhados -->
+            <div id="shared-users-section" style="display: none;">
+                <h3 style="font-size: 16px; margin-bottom: 10px;">Compartilhado com:</h3>
+                <div class="shared-users" id="shared-users-list"></div>
+            </div>
+            
+            <!-- Busca -->
+            <div class="form-group">
+                <label for="user-search">Buscar Usuário (nome, @username ou email)</label>
+                <input type="text" id="user-search" placeholder="Digite nome, @usuario ou email">
+                <div id="search-loading" style="display: none; text-align: center; margin-top: 10px;">
+                    <i class="fas fa-spinner fa-spin"></i> Buscando usuários...
+                </div>
+            </div>
+            
+            <div class="search-results" id="search-results"></div>
+            
+            <div class="modal-actions">
+                <button type="button" class="btn btn-outline" onclick="closeModal('share-modal')">Fechar</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Notificação -->
+    <div id="notification" class="notification"></div>
+
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.js"></script>
+    
+    <!-- Scripts -->
+    <script src="config.js"></script>
+    <script src="dashboard.js"></script>
+</body>
+</html>
