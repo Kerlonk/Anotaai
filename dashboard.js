@@ -1,11 +1,56 @@
 // ==================== ANOTA AÍ - JAVASCRIPT ====================
-// Versão: 5.1 - Modo Escuro + Melhorias Visuais
+// Versão: 6.0 - PWA + Realtime
 
 // ==================== ESTADO GLOBAL ====================
 let currentUser = null;
 let currentList = null;
 let lists = [];
 let allUsers = [];
+let realtimeChannel = null;
+
+// ==================== PWA ====================
+// Registrar Service Worker
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js')
+            .then(registration => {
+                console.log('✅ PWA: Service Worker registrado');
+                
+                // Verificar atualizações
+                registration.addEventListener('updatefound', () => {
+                    const newWorker = registration.installing;
+                    newWorker.addEventListener('statechange', () => {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            showNotification('Nova versão disponível! Recarregue a página.');
+                        }
+                    });
+                });
+            })
+            .catch(error => {
+                console.log('❌ PWA: Erro ao registrar Service Worker:', error);
+            });
+    });
+}
+
+// Prompt de instalação PWA
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    
+    // Mostrar banner de instalação customizado (opcional)
+    setTimeout(() => {
+        if (confirm('Instalar Anota Aí no seu dispositivo?')) {
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then((choiceResult) => {
+                if (choiceResult.outcome === 'accepted') {
+                    console.log('✅ PWA: Usuário aceitou instalação');
+                }
+                deferredPrompt = null;
+            });
+        }
+    }, 3000);
+});
 
 // ==================== MODO ESCURO ====================
 function initTheme() {
@@ -133,6 +178,9 @@ async function checkAuth() {
         await loadUserLists();
         updateProfileDisplay();
         
+        // Iniciar sincronização em tempo real
+        setupRealtimeSync();
+        
     } catch (error) {
         console.error('❌ Erro de autenticação:', error);
         window.location.href = 'index.html';
@@ -216,6 +264,11 @@ function updateProfileDisplay() {
 }
 
 async function logout() {
+    // Desconectar Realtime
+    if (realtimeChannel) {
+        supabase.removeChannel(realtimeChannel);
+    }
+    
     await supabase.auth.signOut();
     window.location.href = 'index.html';
 }
@@ -238,6 +291,89 @@ async function loadAllUsers() {
     } catch (error) {
         console.error('❌ Erro ao carregar usuários:', error);
         allUsers = [];
+    }
+}
+
+// ==================== REALTIME SYNC ====================
+function setupRealtimeSync() {
+    console.log('🔄 Configurando sincronização em tempo real...');
+    
+    // Criar canal para shopping_lists
+    realtimeChannel = supabase.channel('db-changes')
+        .on(
+            'postgres_changes',
+            {
+                event: '*',
+                schema: 'public',
+                table: 'shopping_lists'
+            },
+            (payload) => {
+                console.log('🔔 Mudança detectada:', payload);
+                handleRealtimeUpdate(payload);
+            }
+        )
+        .subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+                console.log('✅ Realtime: Conectado');
+                showNotification('Sincronização em tempo real ativada');
+            }
+        });
+}
+
+async function handleRealtimeUpdate(payload) {
+    const { eventType, new: newRecord, old: oldRecord } = payload;
+    
+    // Verificar se a mudança é relevante para o usuário
+    const isRelevant = newRecord && (
+        newRecord.owner_id === currentUser.id ||
+        (newRecord.shared_with && newRecord.shared_with.includes(currentUser.id))
+    );
+    
+    if (!isRelevant && eventType !== 'DELETE') return;
+    
+    switch (eventType) {
+        case 'INSERT':
+            console.log('➕ Nova lista criada');
+            await loadUserLists();
+            showNotification('Nova lista adicionada!');
+            break;
+            
+        case 'UPDATE':
+            console.log('📝 Lista atualizada');
+            
+            // Atualizar lista local
+            const listIndex = lists.findIndex(l => l.id === newRecord.id);
+            if (listIndex >= 0) {
+                lists[listIndex] = newRecord;
+            }
+            
+            // Se for a lista atual, recarregar conteúdo
+            if (currentList && currentList.id === newRecord.id) {
+                currentList = newRecord;
+                renderListContent();
+                showNotification('Lista atualizada em tempo real!');
+            }
+            
+            renderLists();
+            break;
+            
+        case 'DELETE':
+            console.log('🗑️ Lista removida');
+            
+            // Remover da lista local
+            lists = lists.filter(l => l.id !== oldRecord.id);
+            
+            // Se for a lista atual, limpar
+            if (currentList && currentList.id === oldRecord.id) {
+                currentList = null;
+                renderListContent();
+                document.getElementById('list-actions').style.display = 'none';
+                document.getElementById('current-list-title').textContent = 'Selecione uma lista';
+                showNotification('Lista foi removida');
+            }
+            
+            renderLists();
+            break;
     }
 }
 
@@ -285,12 +421,10 @@ function renderLists() {
         const completedItems = list.items ? list.items.filter(item => item.completed).length : 0;
         const totalItems = list.items ? list.items.length : 0;
         
-        // Usuários compartilhados
         const sharedUsers = (list.shared_with || [])
             .map(userId => allUsers.find(u => u.id === userId))
             .filter(u => u);
         
-        // Dono da lista (se não for eu)
         const owner = isOwner ? null : allUsers.find(u => u.id === list.owner_id);
         
         return `
@@ -405,20 +539,17 @@ async function saveList(list, isNew = false) {
             
             if (error) throw error;
             
+            // Não precisa atualizar manualmente - o Realtime vai fazer isso
+            // Mas mantenha para responsividade local
             const listIndex = lists.findIndex(l => l.id === data.id);
             if (listIndex >= 0) {
                 lists[listIndex] = data;
-            } else {
-                lists.unshift(data);
             }
             
             if (currentList && currentList.id === data.id) {
                 currentList = data;
-                renderListContent();
             }
             
-            renderLists();
-            showNotification(`Lista "${list.name}" ${isNew ? 'criada' : 'salva'} com sucesso!`);
             return data;
         }
     } catch (error) {
@@ -440,17 +571,7 @@ async function deleteList(listId) {
         
         if (error) throw error;
         
-        lists = lists.filter(list => list.id !== listId);
-        
-        if (currentList && currentList.id === listId) {
-            currentList = null;
-            renderListContent();
-            document.getElementById('list-actions').style.display = 'none';
-            document.getElementById('current-list-title').textContent = 'Selecione uma lista';
-        }
-        
-        renderLists();
-        showNotification('Lista excluída com sucesso!');
+        // Realtime vai atualizar automaticamente
         
     } catch (error) {
         console.error('❌ Erro ao excluir lista:', error);
@@ -493,7 +614,6 @@ function renderListContent() {
         return sum;
     }, 0);
     
-    // Gerar info de compartilhamento para página principal
     let sharingInfoHTML = '';
     if (currentList.shared_with && currentList.shared_with.length > 0) {
         const sharedUsers = currentList.shared_with
@@ -1009,4 +1129,4 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-console.log('✅ Anota Aí carregado - v5.1 (Modo Escuro)');
+console.log('✅ Anota Aí carregado - v6.0 (PWA + Realtime)');
