@@ -1,10 +1,36 @@
 // ==================== ANOTA AÍ - JAVASCRIPT ====================
-// Versão: 5.0 - Modular e Organizado
+// Versão: 5.1 - Modo Escuro + Melhorias Visuais
+
 // ==================== ESTADO GLOBAL ====================
 let currentUser = null;
 let currentList = null;
 let lists = [];
 let allUsers = [];
+
+// ==================== MODO ESCURO ====================
+function initTheme() {
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    updateThemeIcon(savedTheme);
+}
+
+function toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+    
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
+    updateThemeIcon(newTheme);
+    
+    showNotification(`Modo ${newTheme === 'dark' ? 'Escuro' : 'Claro'} ativado`);
+}
+
+function updateThemeIcon(theme) {
+    const icon = document.querySelector('#theme-toggle i');
+    if (icon) {
+        icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    }
+}
 
 // ==================== FUNÇÕES UTILITÁRIAS ====================
 function closeModal(modalId) {
@@ -259,9 +285,13 @@ function renderLists() {
         const completedItems = list.items ? list.items.filter(item => item.completed).length : 0;
         const totalItems = list.items ? list.items.length : 0;
         
+        // Usuários compartilhados
         const sharedUsers = (list.shared_with || [])
             .map(userId => allUsers.find(u => u.id === userId))
             .filter(u => u);
+        
+        // Dono da lista (se não for eu)
+        const owner = isOwner ? null : allUsers.find(u => u.id === list.owner_id);
         
         return `
             <div class="list-item ${isActive ? 'active' : ''}" data-list-id="${list.id}">
@@ -271,12 +301,12 @@ function renderLists() {
                     <span style="font-size: 12px;">
                         <i class="fas fa-check-circle"></i> ${completedItems}/${totalItems}
                     </span>
-                    ${isOwner ? '<span style="font-size: 10px; opacity: 0.8;"><i class="fas fa-crown"></i> Dono</span>' : ''}
                 </div>
                 
-                ${sharedUsers.length > 0 ? `
+                ${isOwner && sharedUsers.length > 0 ? `
                     <div class="list-shared-avatars">
-                        <span style="font-size: 10px; opacity: 0.8; margin-right: 4px;">Com:</span>
+                        <span class="list-role-badge owner"><i class="fas fa-crown"></i> Dono</span>
+                        <span class="list-shared-label">Com:</span>
                         ${sharedUsers.map(user => {
                             if (user.avatar_url) {
                                 return `<img src="${user.avatar_url}" class="list-avatar-small" title="${user.name}">`;
@@ -284,6 +314,17 @@ function renderLists() {
                                 return `<div class="list-avatar-initial" title="${user.name}">${user.name[0].toUpperCase()}</div>`;
                             }
                         }).join('')}
+                    </div>
+                ` : ''}
+                
+                ${!isOwner && owner ? `
+                    <div class="list-shared-avatars">
+                        <span class="list-role-badge guest"><i class="fas fa-user"></i> Convidado</span>
+                        <span class="list-shared-label">Dono:</span>
+                        ${owner.avatar_url ? 
+                            `<img src="${owner.avatar_url}" class="list-avatar-small" title="${owner.name}">` : 
+                            `<div class="list-avatar-initial" title="${owner.name}">${owner.name[0].toUpperCase()}</div>`
+                        }
                     </div>
                 ` : ''}
             </div>
@@ -452,7 +493,39 @@ function renderListContent() {
         return sum;
     }, 0);
     
+    // Gerar info de compartilhamento para página principal
+    let sharingInfoHTML = '';
+    if (currentList.shared_with && currentList.shared_with.length > 0) {
+        const sharedUsers = currentList.shared_with
+            .map(userId => allUsers.find(u => u.id === userId))
+            .filter(u => u);
+        
+        if (isOwner && sharedUsers.length > 0) {
+            const names = sharedUsers.map(u => u.name).join(', ');
+            sharingInfoHTML = `
+                <div class="sharing-info">
+                    <i class="fas fa-users"></i>
+                    Dividindo com: ${names}
+                </div>
+            `;
+        }
+    }
+    
+    if (!isOwner) {
+        const owner = allUsers.find(u => u.id === currentList.owner_id);
+        if (owner) {
+            sharingInfoHTML = `
+                <div class="sharing-info">
+                    <i class="fas fa-user-friends"></i>
+                    Dividindo com: ${owner.name}
+                </div>
+            `;
+        }
+    }
+    
     container.innerHTML = `
+        ${sharingInfoHTML}
+        
         <div class="stats-bar">
             <div class="stat-item">
                 <div class="stat-label">Itens Totais</div>
@@ -875,7 +948,10 @@ async function saveProfile() {
 
 // ==================== EVENT LISTENERS ====================
 document.addEventListener('DOMContentLoaded', () => {
+    initTheme();
     checkAuth();
+    
+    document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
     
     document.getElementById('menu-toggle').addEventListener('click', () => {
         document.getElementById('sidebar').classList.add('active');
@@ -933,4 +1009,4 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-console.log('✅ Anota Aí carregado - v5.0');
+console.log('✅ Anota Aí carregado - v5.1 (Modo Escuro)');
