@@ -14,7 +14,7 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-// PWA Install - DISCRETO
+// PWA Install
 let deferredPrompt;
 let installDismissed = localStorage.getItem('pwa-install-dismissed') === 'true';
 
