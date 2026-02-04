@@ -54,8 +54,8 @@ Uma aplicação web moderna, instalável (PWA) e colaborativa para gerenciar lis
 
 ## 📁 Estrutura do Projeto
 Anotaai/
-├── index.html # Página de Login/Registro
 
+├── index.html # Página de Login/Registro
 ├── dashboard.html # Dashboard principal da aplicação
 
 ├── dashboard.css # Todos os estilos CSS (com modo escuro)
