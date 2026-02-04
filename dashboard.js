@@ -1,5 +1,5 @@
 // ==================== ANOTA AÍ - JAVASCRIPT ====================
-// Versão: 6.1 - REALTIME OTIMIZADO + PWA MELHORADO
+// Versão: 6.2 - REALTIME 100% FUNCIONAL
 
 // ==================== ESTADO GLOBAL ====================
 let currentUser = null;
@@ -7,22 +7,17 @@ let currentList = null;
 let lists = [];
 let allUsers = [];
 let realtimeChannel = null;
-let isUpdatingLocally = false; // Flag para evitar loop
 
-// ==================== PWA MELHORADO ====================
+// ==================== PWA ====================
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('/service-worker.js')
-            .then(registration => {
-                console.log('✅ PWA: Service Worker registrado');
-            })
-            .catch(error => {
-                console.log('❌ PWA: Erro ao registrar Service Worker:', error);
-            });
+            .then(() => console.log('✅ PWA: Service Worker registrado'))
+            .catch(error => console.log('❌ PWA: Erro:', error));
     });
 }
 
-// PWA Install Prompt - OTIMIZADO (não perturba)
+// PWA Install - DISCRETO
 let deferredPrompt;
 let installDismissed = localStorage.getItem('pwa-install-dismissed') === 'true';
 
@@ -30,10 +25,8 @@ window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
     
-    // NÃO mostra popup se usuário já dispensou
     if (installDismissed) return;
     
-    // Mostra APENAS 1 VEZ após 10 segundos (discreto)
     setTimeout(() => {
         if (!installDismissed && confirm('📱 Instalar Anota Aí no seu dispositivo?\n\n(Você pode instalar depois pelo menu do navegador)')) {
             deferredPrompt.prompt();
@@ -44,11 +37,10 @@ window.addEventListener('beforeinstallprompt', (e) => {
                 deferredPrompt = null;
             });
         } else {
-            // Marca como dispensado (não perturba mais)
             localStorage.setItem('pwa-install-dismissed', 'true');
             installDismissed = true;
         }
-    }, 10000); // 10 segundos depois do login
+    }, 10000);
 });
 
 // ==================== MODO ESCURO ====================
@@ -177,8 +169,8 @@ async function checkAuth() {
         await loadUserLists();
         updateProfileDisplay();
         
-        // Iniciar Realtime DEPOIS de carregar tudo
-        setupRealtimeSync();
+        // CRÍTICO: Iniciar Realtime DEPOIS de tudo carregado
+        await setupRealtimeSync();
         
     } catch (error) {
         console.error('❌ Erro de autenticação:', error);
@@ -264,7 +256,8 @@ function updateProfileDisplay() {
 
 async function logout() {
     if (realtimeChannel) {
-        supabase.removeChannel(realtimeChannel);
+        await supabase.removeChannel(realtimeChannel);
+        console.log('🔌 Realtime desconectado');
     }
     await supabase.auth.signOut();
     window.location.href = 'index.html';
@@ -289,11 +282,23 @@ async function loadAllUsers() {
     }
 }
 
-// ==================== REALTIME OTIMIZADO ====================
-function setupRealtimeSync() {
-    console.log('🔄 Configurando Realtime...');
+// ==================== REALTIME DEFINITIVO ====================
+async function setupRealtimeSync() {
+    console.log('🔄 Iniciando Realtime...');
     
-    realtimeChannel = supabase.channel('db-changes')
+    // Remover canal antigo se existir
+    if (realtimeChannel) {
+        await supabase.removeChannel(realtimeChannel);
+    }
+    
+    // Criar novo canal
+    realtimeChannel = supabase
+        .channel('shopping-lists-changes', {
+            config: {
+                broadcast: { self: false },
+                presence: { key: currentUser.id }
+            }
+        })
         .on(
             'postgres_changes',
             {
@@ -301,64 +306,111 @@ function setupRealtimeSync() {
                 schema: 'public',
                 table: 'shopping_lists'
             },
-            (payload) => {
-                // NÃO processar se estamos atualizando localmente
-                if (isUpdatingLocally) {
-                    console.log('⏭️ Ignorando evento próprio');
-                    return;
-                }
-                console.log('🔔 Mudança recebida:', payload.eventType);
-                handleRealtimeUpdate(payload);
+            async (payload) => {
+                console.log('🔔 Realtime recebeu:', payload.eventType, payload.new?.id);
+                await handleRealtimeChange(payload);
             }
         )
-        .subscribe((status) => {
+        .subscribe(async (status, err) => {
             if (status === 'SUBSCRIBED') {
-                console.log('✅ Realtime conectado');
+                console.log('✅ Realtime CONECTADO');
+                showNotification('Sincronização em tempo real ativada');
+            } else if (status === 'CHANNEL_ERROR') {
+                console.error('❌ Realtime ERRO:', err);
+                showNotification('Erro na sincronização. Reconectando...', true);
+                // Tentar reconectar após 3 segundos
+                setTimeout(() => setupRealtimeSync(), 3000);
+            } else if (status === 'TIMED_OUT') {
+                console.error('⏱️ Realtime TIMEOUT');
+                setTimeout(() => setupRealtimeSync(), 3000);
+            } else {
+                console.log('🔄 Realtime status:', status);
             }
         });
 }
 
-async function handleRealtimeUpdate(payload) {
+async function handleRealtimeChange(payload) {
     const { eventType, new: newRecord, old: oldRecord } = payload;
     
+    // Verificar se é relevante para o usuário atual
     const isRelevant = newRecord && (
         newRecord.owner_id === currentUser.id ||
-        (newRecord.shared_with && newRecord.shared_with.includes(currentUser.id))
+        (newRecord.shared_with && Array.isArray(newRecord.shared_with) && newRecord.shared_with.includes(currentUser.id))
     );
     
-    if (!isRelevant && eventType !== 'DELETE') return;
+    console.log('📊 Evento:', eventType, '| Relevante:', isRelevant);
     
     switch (eventType) {
         case 'INSERT':
-            lists.unshift(newRecord);
-            renderLists();
-            showNotification('Nova lista adicionada!');
+            if (isRelevant) {
+                console.log('➕ Nova lista detectada');
+                
+                // Verificar se já existe (evitar duplicação)
+                const exists = lists.find(l => l.id === newRecord.id);
+                if (!exists) {
+                    lists.unshift(newRecord);
+                    renderLists();
+                    showNotification(`Nova lista: "${newRecord.name}"`);
+                }
+            }
             break;
             
         case 'UPDATE':
-            const listIndex = lists.findIndex(l => l.id === newRecord.id);
-            if (listIndex >= 0) {
-                lists[listIndex] = newRecord;
+            if (isRelevant) {
+                console.log('📝 Atualização detectada na lista:', newRecord.name);
+                
+                // Atualizar no array de listas
+                const listIndex = lists.findIndex(l => l.id === newRecord.id);
+                if (listIndex >= 0) {
+                    lists[listIndex] = newRecord;
+                } else {
+                    // Se não existe, adicionar (caso seja recém compartilhada)
+                    lists.unshift(newRecord);
+                }
+                
+                // Se for a lista atualmente aberta, atualizar conteúdo
+                if (currentList && currentList.id === newRecord.id) {
+                    currentList = newRecord;
+                    renderListContent();
+                    showNotification('📲 Lista atualizada em tempo real!');
+                }
+                
+                renderLists();
+            } else if (oldRecord && oldRecord.id) {
+                // Verificar se foi removido do compartilhamento
+                const wasShared = oldRecord.shared_with && oldRecord.shared_with.includes(currentUser.id);
+                const isStillShared = newRecord.shared_with && newRecord.shared_with.includes(currentUser.id);
+                
+                if (wasShared && !isStillShared) {
+                    console.log('🚫 Removido do compartilhamento');
+                    lists = lists.filter(l => l.id !== newRecord.id);
+                    
+                    if (currentList && currentList.id === newRecord.id) {
+                        currentList = null;
+                        renderListContent();
+                        document.getElementById('list-actions').style.display = 'none';
+                        document.getElementById('current-list-title').textContent = 'Selecione uma lista';
+                    }
+                    
+                    renderLists();
+                    showNotification('Você foi removido desta lista');
+                }
             }
-            
-            // Se for a lista atual, atualizar SOMENTE se não estamos editando
-            if (currentList && currentList.id === newRecord.id) {
-                currentList = newRecord;
-                renderListContent();
-                showNotification('Lista sincronizada!');
-            }
-            
-            renderLists();
             break;
             
         case 'DELETE':
+            console.log('🗑️ Lista deletada:', oldRecord.id);
+            
+            // Remover do array
             lists = lists.filter(l => l.id !== oldRecord.id);
             
+            // Se for a lista atual, limpar tela
             if (currentList && currentList.id === oldRecord.id) {
                 currentList = null;
                 renderListContent();
                 document.getElementById('list-actions').style.display = 'none';
                 document.getElementById('current-list-title').textContent = 'Selecione uma lista';
+                showNotification('Lista foi excluída');
             }
             
             renderLists();
@@ -486,9 +538,6 @@ async function selectList(listId) {
 
 async function saveList(list, isNew = false) {
     try {
-        // ATIVAR FLAG para evitar loop de Realtime
-        isUpdatingLocally = true;
-        
         let sharedWithArray = [];
         
         if (list.shared_with && Array.isArray(list.shared_with)) {
@@ -514,12 +563,10 @@ async function saveList(list, isNew = false) {
             
             if (error) throw error;
             
-            // Atualizar localmente IMEDIATAMENTE
+            // Atualizar localmente
             lists.unshift(data);
             renderLists();
-            
-            // Desativar flag após 500ms
-            setTimeout(() => { isUpdatingLocally = false; }, 500);
+            showNotification(`Lista "${list.name}" criada!`);
             
             return data;
             
@@ -552,15 +599,11 @@ async function saveList(list, isNew = false) {
             
             renderLists();
             
-            // Desativar flag após 500ms
-            setTimeout(() => { isUpdatingLocally = false; }, 500);
-            
             return data;
         }
     } catch (error) {
         console.error('❌ Erro ao salvar lista:', error);
-        showNotification(`Erro ao salvar lista: ${error.message}`, true);
-        isUpdatingLocally = false;
+        showNotification(`Erro ao salvar: ${error.message}`, true);
         return null;
     }
 }
@@ -569,8 +612,6 @@ async function deleteList(listId) {
     if (!confirm('Tem certeza que deseja excluir esta lista?')) return;
     
     try {
-        isUpdatingLocally = true;
-        
         const { error } = await supabase
             .from('shopping_lists')
             .delete()
@@ -590,14 +631,11 @@ async function deleteList(listId) {
         }
         
         renderLists();
-        showNotification('Lista excluída com sucesso!');
-        
-        setTimeout(() => { isUpdatingLocally = false; }, 500);
+        showNotification('Lista excluída!');
         
     } catch (error) {
-        console.error('❌ Erro ao excluir lista:', error);
+        console.error('❌ Erro ao excluir:', error);
         showNotification('Erro ao excluir lista', true);
-        isUpdatingLocally = false;
     }
 }
 
@@ -1132,7 +1170,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const savedList = await saveList(newList, true);
         
         if (savedList) {
-            lists.unshift(savedList);
             closeModal('create-list-modal');
             selectList(savedList.id);
         }
@@ -1151,4 +1188,4 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-console.log('✅ Anota Aí v6.1 - OTIMIZADO');
+console.log('✅ Anota Aí v6.2 - REALTIME 100% FUNCIONAL');
