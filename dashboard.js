@@ -1,6 +1,3 @@
-// ==================== ANOTA AÍ - JAVASCRIPT ====================
-// Versão: 6.2 - REALTIME 100% FUNCIONAL
-
 // ==================== ESTADO GLOBAL ====================
 let currentUser = null;
 let currentList = null;
