@@ -1,283 +1,190 @@
-# 📝 ANOTA AÍ - ESTRUTURA MODULAR v5.0
+# 📝 Anota Aí - Listas de Compras Compartilhadas em Tempo Real
 
-## 📁 ESTRUTURA DE ARQUIVOS
+Uma aplicação web moderna, instalável (PWA) e colaborativa para gerenciar listas de compras com sincronização instantânea. Construída com **Supabase** (PostgreSQL, Auth, Storage e Realtime) e arquitetura modular frontend.
 
-```
-anota-ai/
-├── index.html           # Página de login/registro
-├── dashboard.html       # Dashboard principal (HTML limpo)
-├── dashboard.css        # Todos os estilos (799 linhas)
-├── dashboard.js         # Toda a lógica (completo e organizado)
-├── config.js            # Configurações do Supabase
-├── fix-rls-avatar.sql   # SQL de correção
-└── README.md            # Este arquivo
-```
+**🔗 URL do Projeto:** [https://github.com/Kerlonk/Anotaai](https://github.com/Kerlonk/Anotaai)
 
 ---
 
-## 🎯 VANTAGENS DA ESTRUTURA MODULAR:
+## ✨ Funcionalidades Principais
 
-### ✅ Organização
-- HTML separado do CSS e JavaScript
-- Fácil manutenção
-- Código limpo e legível
+### 🛒 Gestão Inteligente de Listas
+- **Listas Compartilhadas**: Crie listas e convide familiares ou amigos para colaborar
+- **Sincronização em Tempo Real**: Alterações refletem instantaneamente para todos os participantes (Supabase Realtime)
+- **Gestão de Itens**: Adicione, edite, marque como concluído ou remova itens com quantidade, unidade e preço
+- **Estatísticas em Tempo Real**: Visualize total de itens, concluídos e valor estimado da compra
 
-### ✅ Performance
-- CSS e JS são cacheados pelo navegador
-- Carregamento mais rápido em visitas subsequentes
-- Menor uso de banda
+### 👥 Sistema de Perfil e Colaboração
+- **Perfil Completo**: Foto de avatar (upload para Supabase Storage), nome e nome de usuário
+- **Busca e Compartilhamento**: Encontre usuários por nome, email ou username para compartilhar listas
+- **Controle de Acesso**: Distinção clara entre **Dono** e **Convidado** em cada lista
 
-### ✅ Escalabilidade
-- Adicionar novas funcionalidades é mais fácil
-- Testar componentes isoladamente
-- Reutilizar código em outras páginas
+### 📱 Experiência Moderna (PWA)
+- **Instalável**: Adicione à tela inicial do celular ou computador como app nativo
+- **Funciona Offline**: Acesso básico às páginas sem conexão (Cache First com Service Worker)
+- **Design Responsivo**: Interface adaptada para desktop, tablet e smartphone
+- **Modo Escuro/Claro**: Alternância suave entre temas com preferência salva
 
-### ✅ Colaboração
-- Cada desenvolvedor pode trabalhar em um arquivo diferente
-- Menos conflitos no Git
-- Code review mais fácil
-
----
-
-## 🚀 IMPLEMENTAÇÃO:
-
-### PASSO 1: Executar SQL
-```
-Supabase SQL Editor → fix-rls-avatar.sql → RUN
-```
-
-### PASSO 2: Criar Bucket de Avatares
-1. Supabase → Storage → New Bucket
-2. Nome: `avatars`
-3. Public: ✅ SIM
-4. Criar 3 políticas (ver GUIA-IMPLEMENTACAO-RAPIDO.md)
-
-### PASSO 3: Upload dos Arquivos
-Coloque todos os arquivos na mesma pasta:
-```
-/seu-servidor/
-  ├── index.html
-  ├── dashboard.html
-  ├── dashboard.css
-  ├── dashboard.js
-  └── config.js
-```
-
-### PASSO 4: Testar
-1. Acesse `index.html`
-2. Registre 2 usuários
-3. Configure perfis com foto
-4. Crie lista e compartilhe
-5. Verifique avatares nas listas
+### 🔐 Autenticação Segura
+- Login e registro com email/senha via **Supabase Auth**
+- Sessão persistente e logout seguro
 
 ---
 
-## 📄 DETALHES DOS ARQUIVOS:
+## 🏗️ Arquitetura e Tecnologias
 
-### config.js
-- **Tamanho:** ~15 linhas
-- **Função:** Configurar Supabase
-- **Modificar:** Trocar URL/KEY se necessário
+### **Frontend (Client-Side)**
+- **HTML5, CSS3 (com Variáveis CSS)**, JavaScript (ES6+)
+- **Arquitetura Modular**: Separação clara entre estrutura (HTML), estilo (CSS) e lógica (JS)
+- **Design Responsivo**: CSS Grid/Flexbox com media queries
+- **PWA (Progressive Web App)**: `manifest.json` e `service-worker.js` para instalabilidade
 
-### dashboard.html
-- **Tamanho:** ~250 linhas
-- **Função:** Estrutura HTML
-- **Modificar:** Adicionar novos modais/seções
+### **Backend & Infraestrutura (Supabase - BaaS)**
+- **Supabase**: Plataforma completa que substitui backend tradicional
+  - **PostgreSQL**: Banco de dados relacional para `profiles` e `shopping_lists`
+  - **Realtime**: Sincronização instantânea via subscriptions PostgreSQL
+  - **Auth**: Sistema completo de autenticação de usuários
+  - **Storage**: Bucket (`avatars`) para armazenar imagens de perfil
 
-### dashboard.css
-- **Tamanho:** ~800 linhas
-- **Função:** Todos os estilos
-- **Organização:**
-  - Reset e Base
-  - Header
-  - Botões
-  - Sidebar
-  - Content Area
-  - Stats e Itens
-  - Modais
-  - Perfil
-  - Busca de Usuários
-  - Notificações
-  - Responsive
-
-### dashboard.js
-- **Tamanho:** ~700 linhas
-- **Função:** Toda a lógica
-- **Organização:**
-  - Estado Global
-  - Utilitárias
-  - Upload Avatar
-  - Autenticação
-  - Usuários
-  - Listas
-  - Renderização
-  - Itens
-  - Compartilhamento
-  - Perfil
-  - Event Listeners
+### **Recursos Externos**
+- **Font Awesome**: Ícones vetoriais
+- **Google Fonts**: Tipografia moderna (se aplicável)
 
 ---
 
-## 🔧 COMO MODIFICAR:
-
-### Adicionar Nova Cor no Tema:
-**Arquivo:** `dashboard.css`
-```css
-/* Procure por: */
-.btn-primary {
-    background: #4361ee; /* ← ALTERE AQUI */
-}
-```
-
-### Adicionar Novo Campo no Perfil:
-**Arquivo 1:** `dashboard.html`
-```html
-<!-- Adicione no formulário de perfil: -->
-<div class="form-group">
-    <label for="profile-phone">Telefone</label>
-    <input type="tel" id="profile-phone">
-</div>
-```
-
-**Arquivo 2:** `dashboard.js`
-```javascript
-// Na função saveProfile(), adicione:
-const profilePhone = document.getElementById('profile-phone').value.trim();
-
-// No upsert:
-phone: profilePhone,
-```
-
-### Adicionar Nova Funcionalidade:
-**Arquivo:** `dashboard.js`
-```javascript
-// Adicione no final antes dos event listeners:
-async function minhaNovaFuncao() {
-    // Seu código aqui
-}
-
-// Depois adicione o event listener em DOMContentLoaded
-```
+## 📁 Estrutura do Projeto
+Anotaai/
+├── index.html # Página de Login/Registro
+├── dashboard.html # Dashboard principal da aplicação
+├── dashboard.css # Todos os estilos CSS (com modo escuro)
+├── dashboard.js # Lógica principal (realtime, autenticação, CRUD)
+├── config.js # Configuração do cliente Supabase
+├── manifest.json # Configuração do PWA (nome, ícones, tema)
+├── service-worker.js # Service Worker para cache e funcionamento offline
+└── README.md # Documentação do projeto
 
 ---
 
-## 🐛 TROUBLESHOOTING:
+## ⚙️ Configuração e Execução
 
-### Erro: "config.js não encontrado"
-**Causa:** Arquivos não estão na mesma pasta
-**Solução:** Coloque todos os arquivos .html, .css, .js juntos
+### Pré-requisitos
+1.  **Conta no Supabase**: [Crie uma conta gratuita](https://supabase.com)
+2.  **Navegador Moderno**: Chrome, Edge, Firefox ou Safari atualizados
+3.  **Servidor Web Local**: Python, Node.js ou extensão Live Server
 
-### Erro: "Supabase is not defined"
-**Causa:** CDN do Supabase não carregou
-**Solução:** Verifique conexão de internet
+### Passo 1: Configurar o Supabase
+1.  Crie um novo projeto no Supabase
+2.  Execute o script SQL necessário (se disponível no repositório) para criar as tabelas `profiles` e `shopping_lists`
+3.  No menu **Storage**, crie um bucket público chamado `avatars`
+4.  Configure as políticas (RLS) do bucket para permitir upload e leitura
 
-### Erro: "Cannot read property of undefined"
-**Causa:** Ordem de carregamento incorreta
-**Solução:** Confirme que no dashboard.html os scripts estão assim:
-```html
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.js"></script>
-<script src="config.js"></script>
-<script src="dashboard.js"></script>
-```
+### Passo 2: Configurar o Projeto Local
+1.  **Clone o repositório:**
+    ```bash
+    git clone https://github.com/Kerlonk/Anotaai.git
+    cd Anotaai
+    ```
 
-### Estilos não aplicam:
-**Causa:** dashboard.css não foi carregado
-**Solução:** Verifique o link no <head>:
-```html
-<link rel="stylesheet" href="dashboard.css">
-```
+2.  **Configure as credenciais do Supabase:**
+    - No seu projeto Supabase, vá em **Project Settings > API**
+    - Copie a `URL` e a `anon public` key
+    - **IMPORTANTE**: Crie um arquivo `config.js` com **SUAS credenciais**:
+    ```javascript
+    // config.js - USE SUAS PRÓPRIAS CREDENCIAIS
+    const SUPABASE_CONFIG = {
+        url: 'https://seu-projeto.supabase.co',      // SUA URL AQUI
+        anonKey: 'sua-chave-anon-publica-aqui'      // SUA CHAVE AQUI
+    };
+    const supabase = window.supabase.createClient(
+        SUPABASE_CONFIG.url, 
+        SUPABASE_CONFIG.anonKey
+    );
+    ```
+    ⚠️ **Nunca comite** credenciais reais no Git. O `config.js` deve estar no `.gitignore`.
 
----
+### Passo 3: Executar Localmente
+1.  **Inicie um servidor web local:**
+    ```bash
+    # Opção 1: Python
+    python -m http.server 8000
+    
+    # Opção 2: Node.js com http-server
+    npx http-server
+    
+    # Opção 3: Use a extensão "Live Server" no VS Code
+    ```
 
-## 📊 COMPARAÇÃO: Único vs Modular
-
-| Aspecto | Arquivo Único | Modular |
-|---------|--------------|---------|
-| Linhas totais | ~1500 | ~1500 |
-| Arquivos | 1 | 4 |
-| Manutenção | Difícil | Fácil |
-| Performance | Boa | Melhor |
-| Colaboração | Difícil | Fácil |
-| Escalabilidade | Limitada | Excelente |
-| Cache | Ruim | Ótimo |
-
----
-
-## ✅ CHECKLIST PÓS-IMPLEMENTAÇÃO:
-
-- [ ] SQL executado sem erros
-- [ ] Bucket avatars criado
-- [ ] Todos os 4 arquivos (.html, .css, .js, config.js) na mesma pasta
-- [ ] index.html funciona (login/registro)
-- [ ] dashboard.html carrega corretamente
-- [ ] Estilos aplicam (botões coloridos, gradientes)
-- [ ] JavaScript funciona (console sem erros)
-- [ ] Criar lista funciona sem erro RLS
-- [ ] Perfil salva corretamente
-- [ ] Upload de avatar funciona
-- [ ] Avatares aparecem nas listas
-- [ ] Compartilhamento funciona 100%
+2.  **Acesse a aplicação:**
+    - Abra `http://localhost:8000` no navegador
+    - Registre um novo usuário e comece a usar
 
 ---
 
-## 🎨 CUSTOMIZAÇÃO RÁPIDA:
+## 🗄️ Estrutura do Banco de Dados
 
-### Mudar Cores do Tema:
-No `dashboard.css`, procure e altere:
-```css
-/* Roxo principal */
-#4361ee → SUA_COR
+### Tabela: `profiles`
+- `id` (UUID, PK) - Referencia `auth.users`
+- `email` (text) - Email do usuário
+- `name` (text) - Nome completo
+- `username` (text) - Nome de usuário único
+- `avatar_url` (text) - URL da foto no Storage
+- `created_at`, `updated_at` (timestamptz)
 
-/* Gradiente */
-linear-gradient(135deg, #667eea 0%, #764ba2 100%)
-→ linear-gradient(135deg, COR1, COR2)
+### Tabela: `shopping_lists`
+- `id` (UUID, PK)
+- `name` (text) - Nome da lista
+- `description` (text) - Descrição opcional
+- `items` (JSONB) - Array de objetos: `{name, quantity, unit, price, completed, added_by, added_at}`
+- `owner_id` (UUID) - Referencia `profiles.id`
+- `shared_with` (UUID[]) - Array de IDs dos usuários convidados
+- `created_at`, `updated_at` (timestamptz)
 
-/* Azul claro */
-#4cc9f0 → SUA_COR
-
-/* Rosa */
-#f72585 → SUA_COR
-```
-
-### Mudar Nome da Aplicação:
-No `dashboard.html`:
-```html
-<h1><i class="fas fa-pencil-alt"></i> Anota Aí</h1>
-→ <h1><i class="fas fa-pencil-alt"></i> SEU_NOME</h1>
-```
-
-### Mudar Ícone:
-No `dashboard.html` (tag <link rel="icon">):
-```
-📝 → 🛒 ou 📋 ou qualquer emoji
-```
+**Políticas (RLS)**: Configuradas para que usuários só possam acessar listas das quais são donos ou foram convidados.
 
 ---
 
-## 🚀 PRÓXIMOS PASSOS (Opcional):
+## 🔧 Pontos de Personalização
 
-### Adicionar Categorias:
-1. Criar tabela `categories` no Supabase
-2. Adicionar campo `category_id` em shopping_lists
-3. Filtrar listas por categoria
+### Para Desenvolvedores/Contribuidores
 
-### Notificações em Tempo Real:
-1. Usar Supabase Realtime
-2. Escutar mudanças em shopping_lists
-3. Atualizar UI automaticamente
+1.  **Tema de Cores** (`dashboard.css`):
+    ```css
+    :root {
+        --bg-primary: #f8f9fa;          /* Cor de fundo principal */
+        --sidebar-bg: #2c3e50;          /* Cor da sidebar */
+        --primary-color: #4361ee;       /* Cor primária (botões, links) */
+        /* ... */
+    }
+    ```
 
-### PWA (App Instalável):
-1. Criar `manifest.json`
-2. Adicionar `service-worker.js`
-3. App funcionará offline
+2.  **Adicionar Novos Campos ao Perfil**:
+    - Adicione o campo em `dashboard.html` (formulário de perfil)
+    - Atualize a função `saveProfile()` em `dashboard.js`
+    - Adicione a coluna na tabela `profiles` do Supabase
 
-### Modo Escuro:
-1. Adicionar toggle no header
-2. Criar variáveis CSS
-3. Salvar preferência no localStorage
+3.  **Estender Funcionalidades**:
+    - A lógica está organizada em seções comentadas em `dashboard.js`
+    - Para novas funcionalidades, adicione funções após a seção correspondente
 
 ---
 
-**Versão:** 5.0 - Modular e Otimizado
-**Data:** 03/02/2026
-**Autor:** Anota Aí Team
+## 🧪 Testando a Aplicação
+
+1.  **Registro**: Crie duas contas com emails diferentes
+2.  **Perfil**: Faça upload de avatar e edite informações
+3.  **Listas**: Crie uma lista e adicione alguns itens
+4.  **Compartilhamento**: Busque o segundo usuário e compartilhe a lista
+5.  **Realtime**: Abra a lista em dois navegadores e edite itens simultaneamente
+6.  **PWA**: Use o menu do navegador para "Instalar Anota Aí"
+
+---
+
+## 📄 Licença
+
+Este projeto foi desenvolvido para fins educacionais e de portfólio. Sinta-se à vontade para usá-lo como referência.
+
+---
+
+**✨ Projeto desenvolvido com foco em experiência do usuário e tecnologia moderna.**  
+**Versão:** 6.2 - Realtime & PWA  
+**Autor:** [Kerlonk](https://github.com/Kerlonk)
