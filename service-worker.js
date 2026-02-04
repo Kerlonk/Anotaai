@@ -1,6 +1,3 @@
-// ==================== ANOTA AÍ - SERVICE WORKER ====================
-// Versão: 6.0 - PWA Offline-First
-
 const CACHE_NAME = 'anota-ai-v6.0';
 const urlsToCache = [
   '/',
@@ -13,7 +10,6 @@ const urlsToCache = [
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'
 ];
 
-// Instalação
 self.addEventListener('install', event => {
   console.log('🔧 Service Worker: Instalando...');
   event.waitUntil(
@@ -26,7 +22,6 @@ self.addEventListener('install', event => {
   );
 });
 
-// Ativação
 self.addEventListener('activate', event => {
   console.log('✅ Service Worker: Ativado');
   event.waitUntil(
@@ -42,11 +37,9 @@ self.addEventListener('activate', event => {
   );
 });
 
-// Fetch - Network First, fallback Cache
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
   
-  // Ignorar Supabase
   if (event.request.url.includes('supabase.co')) return;
   
   event.respondWith(
