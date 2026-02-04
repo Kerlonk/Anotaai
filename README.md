@@ -54,14 +54,21 @@ Uma aplicação web moderna, instalável (PWA) e colaborativa para gerenciar lis
 
 ## 📁 Estrutura do Projeto
 Anotaai/
- ├── index.html # Página de Login/Registro
- ├── dashboard.html # Dashboard principal da aplicação
- ├── dashboard.css # Todos os estilos CSS (com modo escuro)
- ├── dashboard.js # Lógica principal (realtime, autenticação, CRUD)
- ├── config.js # Configuração do cliente Supabase
- ├── manifest.json # Configuração do PWA (nome, ícones, tema)
- ├── service-worker.js # Service Worker para cache e funcionamento offline
- └── README.md # Documentação do projeto
+├── index.html # Página de Login/Registro
+
+├── dashboard.html # Dashboard principal da aplicação
+
+├── dashboard.css # Todos os estilos CSS (com modo escuro)
+
+├── dashboard.js # Lógica principal (realtime, autenticação, CRUD)
+
+├── config.js # Configuração do cliente Supabase
+
+├── manifest.json # Configuração do PWA (nome, ícones, tema)
+
+├── service-worker.js # Service Worker para cache e funcionamento offline
+
+└── README.md # Documentação do projeto
  
 ---
 
