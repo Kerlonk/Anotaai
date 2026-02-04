@@ -62,6 +62,7 @@ Anotaai/
 ├── config.js # Configuração do cliente Supabase
 ├── manifest.json # Configuração do PWA (nome, ícones, tema)
 ├── service-worker.js # Service Worker para cache e funcionamento offline
+
 └── README.md # Documentação do projeto
  
 ---
